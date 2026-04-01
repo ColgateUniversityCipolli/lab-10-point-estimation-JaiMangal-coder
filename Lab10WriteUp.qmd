@@ -136,12 +136,84 @@ To help us think about the interpretation, something that was challenging before
 ## Part a
 Suppose a player has a 50\% chance of winning a specific leg, that is let $p=0.50$. Let's look at the probability they win ($x=6$) legs in the match. Compute this probability over a sequence from $\theta=0.5$ to $\theta=1.5$ and plot it using a line where the $x$-axis is $\theta$ and the $y$-axis is $P(X=6)$.
 
+**Solution**
+
+```{r}
+#| fig-align: "center"
+#| fig-cap: "Probability of Winning 6 Legs"
+prob_data = tibble(
+  theta = seq(0,1.5, by = 0.01)
+) |> 
+  mutate(
+    prob_6 = sapply(theta, function(theta_sing){
+      daltbinom(x=6, size = 11, prob = 0.5, theta = theta_sing)
+    })
+  )
+
+prob_data |>
+  ggplot(aes(x = theta, y = prob_6)) +
+  geom_line(linewidth = 1) + 
+  xlab("theta") +
+  ylab("P(X=6)") + 
+  theme_bw()
+
+```
+
 ## Part b
 Now, plot Altham's Multiplicative Binomial Distribution under the same parameters with $\theta=0.50$, $\theta=1$, and $\theta=1.5$. Use `ncol=1` in `facet_wrap()` to plot the PMFs in a single column for comparing.
+
+**Solution**
+
+```{r}
+#| fig-align: "center"
+#| fig-cap: "Altham's for theta = 0.5, 1, 1.5"
+
+pmf_05 = tibble(
+  x = 0:11,
+  theta = 0.5,
+  prob = sapply(0:11, function(x_val){
+    daltbinom(x = x_val, size = 11, prob = 0.5, theta = 0.5)
+  })
+)
+
+pmf_1 = tibble(
+  x = 0:11,
+  theta = 1,
+  prob = sapply(0:11, function(x_val){
+    daltbinom(x = x_val, size = 11, prob = 0.5, theta = 1)
+  })
+)
+
+pmf_15 = tibble(
+  x = 0:11,
+  theta = 1.5,
+  prob = sapply(0:11, function(x_val){
+    daltbinom(x = x_val, size = 11, prob = 0.5, theta = 1.5)
+  })
+)
+
+pmf_data = bind_rows(pmf_05, pmf_1, pmf_15)
+
+pmf_data |>
+  ggplot(aes(x = x, y = prob)) +
+  geom_col() +
+  facet_wrap(~theta, ncol = 1) +
+  xlab("x") +
+  ylab("P(X=x)") +
+  theme_bw()
+
+```
 
 ## Part c
 What is your best assessment of what $\theta$ is doing in this setting. Consider when a 6-0 blowout is most likely, and when a 5-6 nail-biter is most likely. Note here we should treat the match as a fixed $n=11$ as we did for $n=3$ in Lab 8.\
 **Note:** In lab 8, we saw that small $\theta$ meant wins came in bunches (clumped together), so there were more 2-0 wins in a best of three series.
+
+**Solution**
+
+```{r}
+
+
+```
 
 # Question 2
 
