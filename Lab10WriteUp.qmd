@@ -138,7 +138,7 @@ Suppose a player has a 50\% chance of winning a specific leg, that is let $p=0.5
 
 **Solution**
 
-I created a faux continuous sequence of theta values by creating a vector of very small values between 0 and 1.5 theta. I then applied althams binomial distribution to the 'continuous' theta values looking for where X is exactly 6, or win the game. 
+I created a faux continuous sequence of theta values by creating a vector of very small values between 0 and 1.5 theta. I then applied althams binomial distribution to the 'continuous' theta values looking for where X is exactly 6, or win the game. We see its not very likely for a player to win exaclty 6 matches when theta is low, but that probility goes up at theta does. 
 
 ```{r}
 #| fig-align: "center"
@@ -199,7 +199,7 @@ pmf_data = bind_rows(pmf_05, pmf_1, pmf_15)
 
 pmf_data |>
   ggplot(aes(x = x, y = prob)) +
-  geom_col() +
+  geom_line(linewidth = 1) +
   facet_wrap(~theta, ncol = 1) +
   xlab("x") +
   ylab("P(X=x)") +
@@ -220,14 +220,76 @@ Here theta is clumping wins and losses. So when theta is small it clumps more, a
 ## Part a
 Altham's Multiplicative Binomial Distribution does not typically simplify to the clean $E(X)=np$ seen in the Binomial distribution, unless $\theta = 1$. Write out the expression that would need to be solved to find $E(X^k)$, and then write a function that computes it given the proposed parameter values $p$ (`prob`) and $\theta$ (`theta`).
 
+
+**Solution**
+
+To solve $E(X^k)$, the expression follows:
+
+$$E(X^k) = \sum_{x=0}^{n} x^k P(X=x). $$
+
+Then, I just created a simple function that emulates this expression for varying prob and theta values, also size as well. 
+
+```{r}
+
+altham_moment = function(size, k, prob, theta){
+  x_vals = 0:size
+
+  moment = sum(sapply(x_vals, function(x){ #sums all together
+    (x^k)*daltbinom(x = x, size = size, prob = prob, theta = theta)
+    })
+  )
+  return(moment)
+}
+
+```
+
 ## Part b
 Describe how you can use your answer to part a to find Method of Moments estimates for the parameters $p$ and $\theta$ for Altham's Multiplicative Binomial Distribution based on data.
+
+
+**Solution**
+
+I will get sample moments from the data, then compute theoretical moments from the model, set them equal to each other and solve for $p$ and $\theta$. Because there are two parameters, I am going to need at least two equations. I would use the first two moments as my equations. I would get my first two moments of the model using my function from the previous part. I would get my first two moments of the data by: 
+
+$$ E(X) = \frac{1}{n} \sum_{i=1}^{n} X_i $$
+
+and:
+
+$$ E(X^2) = \frac{1}{n} \sum_{i=1}^{n} X_i^2 $$
+
+
+I would then set the moments from the model equal to the moments from the data and solve them simultaneously for $p$ and $\theta$. 
+
 
 ## Part c
 Write a function that computes the log-likelihood for Altham's Multiplicative Binomial Distribution, given data (`x`) and proposed parameter values $p$ (`prob`) and $\theta$ (`theta`).
 
+**Solution**
+
+I made my function, remembering to keep the log inside the summation. It really is just the sum of the log probabilities. I also made my function support a size parameter because I'm cool like that. 
+
+```{r}
+
+altham_loglike = function(x, size, prob, theta){
+  loglike = sum(log(
+    sapply(x, function(x_val){
+      daltbinom(x=x_val, size = size, prob = prob, theta = theta)
+    })
+  ))
+  return(loglike)
+}
+
+```
+
+
 ## Part d
 Describe how you can use your answer to part c to find Maximum Likelihood estimates for the parameters $p$ and $\theta$ for Altham's Multiplicative Binomial Distribution based on data.
+
+
+**Solution**
+
+I would use the log-likelihood function and maximize it with respect to $p$ and $\theta$ on the data. I wouldn't do this by hand, but numerically using optim. To keep real parameter values I would transform them such that $0 < p < 1$ and $\theta > 0$.
+
 
 # Lab 10
 Peter "Snakebite" Wright is a two-time Professional Darts Corporation World Champion (2020, 2022) and a former World No. 1. He is one of the sport's most decorated players, winning nearly 50 PDC titles including the World Matchplay, UK Open, and multiple European Championships. 
@@ -259,6 +321,20 @@ In `pdc2024.csv`, I have provided the data for the 2024 Premier League season. T
   
   Summarize the data. What do the data tell us about the breakdown of the results?
 
+**Solution**
+
+```{r}
+
+pdc2024 = read_csv("pdc2024.csv")
+
+pdc_clean = pdc2024 |>
+  filter(Score != "w/o") |>
+  filter(Night != "Finals")
+
+view(pdc_clean)
+
+```
+
 ## Altham's Multiplicative Binomial Distribution
 For each player in the 2024 season, use the number of legs won in each match to compute maximium likelihood estimates for $p$ and $\theta$. \
 **Note**: The "for each" here can be done more efficiently with a function or a loop!
@@ -268,6 +344,12 @@ For each player in the 2024 season, use the number of legs won in each match to 
 **Note:** In Lecture on Monday, we used transformations to restrict how `optim()` searches the parameter space. For example, here, you might consider
 `p <- 1/(1+exp(-par[1]))` and `theta <- exp(par[2])`.
 * Make comments about the MLEs in the context of the standings.
+
+**Solution**
+
+```{r}
+
+```
 
 ## Altham's Multiplicative Beta Binomial Distribution
 
@@ -287,5 +369,17 @@ For each player in the 2024 season, use the number of legs won in each match to 
 * Make comments about the MLEs in the context of the standings.\
 **Note**: The players alternate who throws first in a leg has the mathematical "head start" to reach a finish before their opponent can take another turn. Players alternate who throws first with each leg.
 
+**Solution**
+
+```{r}
+
+```
+
 ## Executive Summary
 Summarize the work you've done here to provide a brief (200-300 word) data-driven summary of the 2024 Premier League season using your work in Lab 10. Your summary should be professional, clear, and all claims should be corroborated with statistical support.
+
+**Solution**
+
+```{r}
+
+```
