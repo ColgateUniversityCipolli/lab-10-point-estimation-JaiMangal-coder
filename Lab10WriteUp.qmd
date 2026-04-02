@@ -138,6 +138,8 @@ Suppose a player has a 50\% chance of winning a specific leg, that is let $p=0.5
 
 **Solution**
 
+I created a faux continuous sequence of theta values by creating a vector of very small values between 0 and 1.5 theta. I then applied althams binomial distribution to the 'continuous' theta values looking for where X is exactly 6, or win the game. 
+
 ```{r}
 #| fig-align: "center"
 #| fig-cap: "Probability of Winning 6 Legs"
@@ -164,6 +166,7 @@ Now, plot Altham's Multiplicative Binomial Distribution under the same parameter
 
 **Solution**
 
+Now I applied althams on specific theta values and on a range of x values, or number of wins, in order to show the probability of number of wins depending on theta values. 
 ```{r}
 #| fig-align: "center"
 #| fig-cap: "Altham's for theta = 0.5, 1, 1.5"
@@ -171,7 +174,7 @@ Now, plot Altham's Multiplicative Binomial Distribution under the same parameter
 pmf_05 = tibble(
   x = 0:11,
   theta = 0.5,
-  prob = sapply(0:11, function(x_val){
+  prob = sapply(x, function(x_val){
     daltbinom(x = x_val, size = 11, prob = 0.5, theta = 0.5)
   })
 )
@@ -179,7 +182,7 @@ pmf_05 = tibble(
 pmf_1 = tibble(
   x = 0:11,
   theta = 1,
-  prob = sapply(0:11, function(x_val){
+  prob = sapply(x, function(x_val){
     daltbinom(x = x_val, size = 11, prob = 0.5, theta = 1)
   })
 )
@@ -187,7 +190,7 @@ pmf_1 = tibble(
 pmf_15 = tibble(
   x = 0:11,
   theta = 1.5,
-  prob = sapply(0:11, function(x_val){
+  prob = sapply(x, function(x_val){
     daltbinom(x = x_val, size = 11, prob = 0.5, theta = 1.5)
   })
 )
@@ -210,10 +213,7 @@ What is your best assessment of what $\theta$ is doing in this setting. Consider
 
 **Solution**
 
-```{r}
-
-
-```
+Here theta is clumping wins and losses. So when theta is small it clumps more, as seen in the theta = 0.5 graph. We see that the greatest probability is attributed to a blowout in either direction, either 11-0 or 0-11. Now when theta is 1, our althams reduces to just a beta distribution looking gaussian. So the probability is centered around 5 or 6 wins but slowly tails off on either side. Now when theta is high like at theta = 1.5, we see a much more tightly centered distribution. The wins are much more centered around 5 or 6 wins which gives a higher likelihood of a nail-biter game, with scores like 5-6 or 6-5. 
 
 # Question 2
 
