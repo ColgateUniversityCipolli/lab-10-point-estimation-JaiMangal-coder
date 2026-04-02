@@ -328,10 +328,40 @@ In `pdc2024.csv`, I have provided the data for the 2024 Premier League season. T
 pdc2024 = read_csv("pdc2024.csv")
 
 pdc_clean = pdc2024 |>
-  filter(Score != "w/o") |>
-  filter(Night != "Finals")
+  filter(Score != "w/o") |> #takes out no score games
+  filter(Night != "Finals") |> #takes out finals nights
+  separate_wider_delim(Score, delim = "-", names = c("WinnerLegs", "LoserLegs")) |> #separates score into two new columns based on "-"
 
-view(pdc_clean)
+  mutate(WinnerLegs = as.numeric(WinnerLegs), 
+          LoserLegs = as.numeric(LoserLegs)) #made them numeric here, seems like it will be useful later on
+
+#summary part
+
+summary_stats = pdc_clean |>
+  summarize(
+    TotalMatches = n(),
+    AvgWinnerLegs = mean(WinnerLegs), #obv always going to be 6, but i put it in anyways
+    AvgLoserLegs = mean(LoserLegs),
+    MinLoserLegs = min(LoserLegs),
+    MaxLoserLegs = max(LoserLegs)
+  )
+
+summary_stats
+
+wins_summary = pdc_clean |>
+  group_by(Winner) |>
+  summarize(Wins = n()) |>
+  mutate(Player = Winner)
+
+losses_summary = pdc_clean |>
+  group_by(Loser) |>
+  summarize(Losses = n()) |>
+  mutate(Player = Loser)
+
+player_summary = full_join(wins_summary, losses_summary, by = "Player") |>
+  mutate(Matches = Wins + Losses)
+
+player_summary
 
 ```
 
