@@ -323,6 +323,8 @@ In `pdc2024.csv`, I have provided the data for the 2024 Premier League season. T
 
 **Solution**
 
+Our normal summary stats don't tell us much here, other than the average number of legs the loser has in a game is around 4 (3.56) legs, before they lose. We also see that a total of 111 matches were played. From the player summary we get some more insight. Luke Littler has the most amount of wins, followed by Luke Humphries and Michael Smith. This is telling about the final standings of the tournament where Luke Littler won first place and Luke Humphries came second. However Michael Smith may have won more games than Michael van Gerwen, yet van Gerwen still placed higher. This tells us that it is not always the case that more games won means higher placement. My intuition tells me that it is more important to win the more crucial games than it is to have a higher winning rate. We also see a nice correlation of wins to matches played here. 
+
 ```{r}
 
 pdc2024 = read_csv("pdc2024.csv")
@@ -359,7 +361,9 @@ losses_summary = pdc_clean |>
   mutate(Player = Loser)
 
 player_summary = full_join(wins_summary, losses_summary, by = "Player") |>
-  mutate(Matches = Wins + Losses)
+  mutate(Matches = Wins + Losses) |>
+  select(Player, Wins, Losses, Matches) |> #my mediocre fix to keep wins losses and matches only
+  arrange(desc(Wins)) #arranged by wins
 
 player_summary
 
