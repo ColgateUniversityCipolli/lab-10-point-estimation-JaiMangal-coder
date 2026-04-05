@@ -382,8 +382,70 @@ For each player in the 2024 season, use the number of legs won in each match to 
 **Solution**
 
 ```{r}
+winner_legs = pdc_clean |>
+  select(Player = Winner, LegsWon = WinnerLegs)
 
+loser_legs = pdc_clean |>
+  select(Player = Loser, LegsWon = LoserLegs)
+
+player_legs = bind_rows(winner_legs, loser_legs) #this has all the won legs from both when they win or lose the overall matches
+
+ll_altham = function(par, data, size, mle = F){ #this was all adapted from class notes
+  prob = ifelse(mle, 1 / (1 + exp(-par[1])), par[1])
+  theta = ifelse(mle, exp(par[2]), par[2])
+
+  ll = altham_loglike(x = data, size = size, prob = prob, theta = theta)
+
+  ifelse(mle, -ll, ll)
+}
+
+get_altham_mle = function(data, size){ #function to grab params by player
+  mle = optim(
+    par = c(0, 0), #starting val
+    fn = ll_altham, #my function for optim
+    data = data,
+    size = size,
+    mle = T
+  )
+
+  return(c(prob = 1 / (1 + exp(-mle$par[1])), theta = exp(mle$par[2])) #results here
+  )
+}
+
+#formatting into nice table, filling values in from our mle function
+#i struggled with this a lot, ive been having a tough time figuring out how to nicely set up tables... 
+#this was what i could come up with, but i hate it
+
+players = unique(player_legs$Player) #only want one instance of each player
+
+player_mle = tibble( #blank table first
+  Player = character(),
+  prob = numeric(),
+  theta = numeric()
+)
+
+for(player_name in players){ 
+  
+  player_data = player_legs |> 
+    filter(Player == player_name) #singling out
+
+  player_data = player_data$LegsWon
+  
+  mle_fit = get_altham_mle(data = player_data, size = 11) #applying function
+  
+  player_mle = bind_rows( #imputing values
+    player_mle, tibble(
+                      Player = player_name,
+                      prob = mle_fit["prob"],
+                      theta = mle_fit["theta"])
+                ) |>
+    arrange(desc(prob))
+}
+
+player_mle
 ```
+
+Given our MLE table, we see that Luke Littler has the highest prob and theta values. Our prob values are the probabilities of each player winning a leg, and thus, it follows that players who are better at winning a leg generally tend to do better in the competition. As we can see, Luke Littler has the highest prob value while placing first, and Peter Wright had the lowest prob value while placing last. The estimated theta values all are reasonably close to 1 here, which suggests that players' matches don't show that much bunching compared to the normal binomial case. However, Luke Littler's theta is much higher (1.32), showcasing that his match results were much more competitive, rather than blow-outs. Overall, prob tends to better predict standings overall, while theta tends to better predict specific match result distributions.
 
 ## Altham's Multiplicative Beta Binomial Distribution
 
