@@ -391,7 +391,7 @@ loser_legs = pdc_clean |>
 player_legs = bind_rows(winner_legs, loser_legs) #this has all the won legs from both when they win or lose the overall matches
 
 ll_altham = function(par, data, size, mle = F){ #this was all adapted from class notes
-  prob = ifelse(mle, 1 / (1 + exp(-par[1])), par[1])
+  prob = ifelse(mle, 1 / (1 + exp(-par[1])), par[1]) #restricting
   theta = ifelse(mle, exp(par[2]), par[2])
 
   ll = altham_loglike(x = data, size = size, prob = prob, theta = theta)
@@ -434,8 +434,7 @@ for(player_name in players){
   mle_fit = get_altham_mle(data = player_data, size = 11) #applying function
   
   player_mle = bind_rows( #imputing values
-    player_mle, tibble(
-                      Player = player_name,
+    player_mle, tibble(Player = player_name,
                       prob = mle_fit["prob"],
                       theta = mle_fit["theta"])
                 ) |>
@@ -469,12 +468,115 @@ For each player in the 2024 season, use the number of legs won in each match to 
 
 ```{r}
 
+ll_altham_beta = function(par, data, size, mle = F){ #same step where i adapted from class notes
+  alpha = ifelse(mle, exp(par[1]), par[1]) #restricted by making them all positive via exponents
+  beta = ifelse(mle, exp(par[2]), par[2])
+  theta = ifelse(mle, exp(par[3]), par[3])
+
+  probs = daltbbinom(x = 0:6, size = size, alpha = alpha, beta = beta, theta = theta) #precomputed probs as given in the note 
+
+  log_probs = log(probs) #now logged
+
+  ll = sum(log_probs[data + 1]) #need data+1 
+  #for indexing (stupid R indexes at 1 first, although this is nicer to read, i forgot abt this)
+
+  ifelse(mle, -ll, ll)
+}
+
+get_altham_beta_mle = function(data, size){ #same idea as before
+  mle = optim(
+    par = c(0, 0, 0), #start vals
+    fn = ll_altham_beta,
+    data = data,
+    size = size,
+    mle = T
+  )
+  c(alpha = exp(mle$par[1]),
+    beta = exp(mle$par[2]),
+    theta = exp(mle$par[3])
+  )
+}
+
+#exact same idea as before, just copy pasted and made changes
+players = unique(player_legs$Player)
+
+player_beta_mle = tibble(
+  Player = character(),
+  alpha = numeric(),
+  beta = numeric(),
+  theta = numeric()
+)
+
+for(player_name in players){
+  
+  player_data = player_legs |>
+    filter(Player == player_name)
+
+  player_data = player_data$LegsWon
+  
+  mle_fit = get_altham_beta_mle(data = player_data, size = 11)
+  
+  player_beta_mle = bind_rows(
+    player_beta_mle,
+    tibble(Player = player_name,
+      alpha = mle_fit["alpha"],
+      beta = mle_fit["beta"],
+      theta = mle_fit["theta"]
+    )
+  )
+}
+
+player_beta_mle = player_beta_mle |> #adding var and E(X)
+  mutate(
+    mean = alpha/(alpha+beta),
+    sd = sqrt((alpha*beta) /(((alpha+beta)^2)*(alpha+beta+1)))
+  ) |>
+  arrange(desc(mean))
+
+#plotting section, i know this isnt optimal ("I CAN DO WHATEVER I WANT" - the great WC)
+p_vals = seq(0.001, 0.999, by = 0.001)
+
+beta_plot = tibble(
+  Player = rep(player_beta_mle$Player, each = length(p_vals)),
+  p = rep(p_vals, times = nrow(player_beta_mle)),
+  density = c(
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[1], shape2 = player_beta_mle$beta[1]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[2], shape2 = player_beta_mle$beta[2]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[3], shape2 = player_beta_mle$beta[3]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[4], shape2 = player_beta_mle$beta[4]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[5], shape2 = player_beta_mle$beta[5]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[6], shape2 = player_beta_mle$beta[6]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[7], shape2 = player_beta_mle$beta[7]),
+    dbeta(p_vals, shape1 = player_beta_mle$alpha[8], shape2 = player_beta_mle$beta[8])
+  )
+)
+
+beta_plot |>
+  ggplot(aes(x = p, y = density)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~Player, ncol = 3) +
+  xlab("p") +
+  ylab("Density") +
+  theme_bw()
+
+
+#MLE table here (want to show last)
+player_beta_mle
+
 ```
+
+The MLEs mostly agree with the standings overall. Luke Littler has the greatest beta mean suggesting a greater leg-winning probability, while Peter Wright has the lowest beta mean matching his last place performance. Players between them seem to also have matching mean values relative to their standing. Theta values here were also very varying. Luke Littler had a massive theta value of 10.8, suggesting that his results were extremely centered around nail-biting matches, while Peter Wright had a much lower theta value, suggesting a less centered results distribution comparatively to Littler's. Overall, the fitted beta means seem to capture standings pretty well, while theta helps to show match results distributions nicely. 
 
 ## Executive Summary
 Summarize the work you've done here to provide a brief (200-300 word) data-driven summary of the 2024 Premier League season using your work in Lab 10. Your summary should be professional, clear, and all claims should be corroborated with statistical support.
 
 **Solution**
+
+While the competition was fierce, the results of a data-driven analysis showed clear differences in player strength. After removing the walkover and Finals rounds, the data set contained 111 matches played. The average number of legs won by the loser in a given match was 3.56, suggesting that most matches were close rather than complete blowouts. In the first player summary, Luke Littler had 24 wins, followed by Luke Humphries with 20, and in last place, Peter Wright only had 2 wins in the whole competition. 
+
+Using Altham's Multiplicative Binomial Model, the estimated leg-win probability p did well to predict standings overall. Luke Littler had the largest p at 0.469, while Peter Wright had the lowest estimate p value at 0.317. The fitted theta values were close to 1, suggesting that most player's matches were not much more clumped than the normal binomial model. 
+
+The Altham's Multiplicative Beta-Binomial Model gave a more robust analysis by allowing the leg-win probability to vary a little bit across matches. The fitted beta means did well to predict standings overall here. Luke Littler had the highest with 0.425, followed by Luke Humphries, and again Peter Wright had the lowest at 0.197. The estimated theta values varied a lot here. Luke Littler had a theta value of 10.8, suggesting close and competitive match outcomes, while Peter Wright had a lower theta value of 1.21, suggesting less tightly centered match outcomes. Overall, this model gave a much more thorough analysis of the players' qualities and matches' variability. 
 
 ```{r}
 
